@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: e769aade2f874a248b92ee1a67b2026a, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -140,6 +140,16 @@ MonoBehaviour:
   tileSize: 1.5
   yOffset: 0.01
   boardCenter: {x: 0, y: 0, z: 0}
+  prefabs:
+  - {fileID: 9204601144244254648, guid: d117163a0169d644193a182a0d2485c2, type: 3}
+  - {fileID: 7573951893837031146, guid: 2fe38e48996e63f4fb31dc3d7d21e556, type: 3}
+  - {fileID: 7668000057596488432, guid: 48cf73c13010aa24caf9180b173ac8da, type: 3}
+  - {fileID: 7945209807506567383, guid: 4075e598fd67e664a90ca07c73ff973f, type: 3}
+  - {fileID: 7302723592721386005, guid: 01688ab917fbe55419bf148d48014e1e, type: 3}
+  - {fileID: 5384180820051314587, guid: df0b6b8645563c549b307f4ca4fd559a, type: 3}
+  material:
+  - {fileID: 2100000, guid: 7fc7aef8bb79b8b428319cf4d31bdec7, type: 2}
+  - {fileID: 2100000, guid: 51efce72c80e41f43ac433c792864e75, type: 2}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -226,13 +236,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.58345956, y: -0, z: -0, w: 0.8121422}
-  m_LocalPosition: {x: 0, y: 11.79, z: -5.24}
+  m_LocalRotation: {x: 0.4543777, y: -0, z: -0, w: 0.89080906}
+  m_LocalPosition: {x: 0, y: 10.259, z: -8.622}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 71.388, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 54.05, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -349,7 +359,7 @@ Light:
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
-  m_ColorTemperature: 5000
+  m_ColorTemperature: 3831
   m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
@@ -368,13 +378,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalRotation: {x: 0.6149313, y: -0.14947847, z: 0.10144338, w: 0.76760983}
+  m_LocalPosition: {x: 0.64, y: 8.04, z: -0.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: 77.003, y: -27.751, z: -7.178}
 --- !u!114 &410087042
 MonoBehaviour:
   m_ObjectHideFlags: 0
