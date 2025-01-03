@@ -19,7 +19,6 @@ public class GameUI : MonoBehaviour
     }
     public void OnOnlineHostButton() {
         menuAnimatior.SetTrigger("HostMenu");
-
     }
     public void OnOnlineConnectButton() {
         Debug.Log("OnOnlineConnectButton");
