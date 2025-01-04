@@ -4236,6 +4236,8 @@ GameObject:
   - component: {fileID: 2122366615}
   - component: {fileID: 2122366620}
   - component: {fileID: 2122366619}
+  - component: {fileID: 2122366622}
+  - component: {fileID: 2122366621}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -4363,7 +4365,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a670e7da0fedd714690b9b7d0d6dadf4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  server: {fileID: 2122366622}
+  client: {fileID: 2122366621}
   menuAnimatior: {fileID: 2122366619}
+  addressInput: {fileID: 1377797877}
+--- !u!114 &2122366621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2122366614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f2b42c9d493f8e47bc4b4dc3ec46eb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &2122366622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2122366614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c29f501399780246b6965f836ea5803, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

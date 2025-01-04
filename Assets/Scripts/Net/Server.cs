@@ -6,14 +6,6 @@ using UnityEngine;
 
 public class Server : MonoBehaviour
 {
-    //TODO: need to make better singleton
-    public static Server Instance {set; get;}
-
-    private void Awake() 
-    {
-        Instance = this;
-    }
-    //
     public NetworkDriver driver;
     private NativeList<NetworkConnection> connections;
 
@@ -64,12 +56,21 @@ public class Server : MonoBehaviour
     {
         if(!isActive) return;
 
-        //KeepAlive();
+        KeepAlive();
 
         driver.ScheduleUpdate().Complete();
         CleanupConnections();
         AcceptNewConnections();
         UpdateMessagePump();
+    }
+
+    private void KeepAlive()
+    {
+        if(Time.time - lastKeepAlive > keepAliveTickRate)
+        {
+            lastKeepAlive = Time.time;
+            Broadcast(new NetKeepAlive());
+        }
     }
 
     private void CleanupConnections()
@@ -102,7 +103,7 @@ public class Server : MonoBehaviour
             {
                 if (cmd == NetworkEvent.Type.Data)
                 {
-                    //NetUtility.OnData(stream, connections[i], this);
+                    NetUtility.OnData(stream, connections[i], this);
                 }
                 else if (cmd == NetworkEvent.Type.Disconnect)
                 {
@@ -120,7 +121,7 @@ public class Server : MonoBehaviour
     {
         DataStreamWriter writer;
         driver.BeginSend(connection, out writer);
-        //msg.Serialize(ref writer);
+        msg.Serialize(ref writer);
         driver.EndSend(writer);
     } 
 
