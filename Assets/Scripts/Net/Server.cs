@@ -6,6 +6,14 @@ using UnityEngine;
 
 public class Server : MonoBehaviour
 {
+    //TODO: need to make better singleton
+    public static Server Instance {set; get;}
+
+    private void Awake() 
+    {
+        Instance = this;
+    }
+    //
     public NetworkDriver driver;
     private NativeList<NetworkConnection> connections;
 

@@ -85,7 +85,7 @@ public class Client : MonoBehaviour
             }
             else if (cmd == NetworkEvent.Type.Connect)
             {
-               // SendToServer(new NetWelcome());
+               SendToServer(new NetWelcome());
                Debug.Log("Connected!");
             }
             else if (cmd == NetworkEvent.Type.Disconnect)

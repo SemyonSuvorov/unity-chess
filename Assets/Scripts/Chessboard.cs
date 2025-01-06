@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Networking.Transport;
 using UnityEngine;
 
 public enum SpecialMove 
@@ -41,13 +42,20 @@ public class Chessboard : MonoBehaviour
     private bool isWhiteTurn;
     private SpecialMove specialMove;
 
-    private void Awake()
+    // Multi Logic
+    private int playerCount = -1;
+    private int currentTeam = -1;
+    private bool localGame = true;
+
+    private void Start()
     {
         isWhiteTurn = true;
 
         GenerateAllTiles(tileSize, TILE_COUNT_X, TILE_COUNT_Y);
         SpawnAllPieces();
         PositionAllPieces();
+
+        RegisterEvents();
     }
     private void Update()
     {
@@ -84,7 +92,7 @@ public class Chessboard : MonoBehaviour
             if(chessPieces[hitPosition.x, hitPosition.y] != null)
             {
                 //Is it our turn
-                if((chessPieces[hitPosition.x, hitPosition.y].team == 0 && isWhiteTurn) || (chessPieces[hitPosition.x, hitPosition.y].team == 1 && !isWhiteTurn))
+                if((chessPieces[hitPosition.x, hitPosition.y].team == 0 && isWhiteTurn && currentTeam == 0) || (chessPieces[hitPosition.x, hitPosition.y].team == 1 && !isWhiteTurn && currentTeam == 1))
                 {
                     currentlyDragging = chessPieces[hitPosition.x, hitPosition.y];
                     //Get a list, where i can go
@@ -661,6 +669,8 @@ public class Chessboard : MonoBehaviour
        PositionSinglePiece(x, y);
 
        isWhiteTurn = !isWhiteTurn;
+       if(localGame)
+        currentTeam = (currentTeam == 0) ? 1 : 0;
        moveList.Add(new Vector2Int[] {previousPosition, new Vector2Int(x,y)});
 
        ProcessSpecialMove();
@@ -670,4 +680,74 @@ public class Chessboard : MonoBehaviour
 
        return true;
     }
+
+    #region 
+    private void RegisterEvents()
+    {
+        NetUtility.S_WELCOME += OnWelcomeServer;
+
+        NetUtility.C_WELCOME += OnWelcomeClient;
+        NetUtility.C_START_GAME += OnStartGameClient;
+
+        GameUI.Instance.SETLocalGame += OnSetLocalGame;
+    }
+
+    private void UnergisterEvents()
+    {
+        NetUtility.S_WELCOME -= OnWelcomeServer;
+
+        NetUtility.C_WELCOME -= OnWelcomeClient;
+        NetUtility.C_START_GAME -= OnStartGameClient;
+
+        GameUI.Instance.SETLocalGame -= OnSetLocalGame;
+    }
+
+    // Server
+    private void OnWelcomeServer(NetMessage msg, NetworkConnection cnn)
+    {
+        // Client has connected, assigned team and return the message back 
+        NetWelcome nw = msg as NetWelcome;
+
+        //Assign a team
+        nw.AssignedTeam = ++playerCount;
+
+        // Return back to the client
+        Server.Instance.SendToClient(cnn, nw);
+
+        // if full, start the game
+        if(playerCount == 1)
+        {
+            Server.Instance.Broadcast(new NetStartGame());
+        }   
+    }
+
+    // Client
+    private void OnWelcomeClient(NetMessage msg)
+    {
+        // Receive the connection message
+        NetWelcome nw = msg as NetWelcome;
+
+        //Assign the team
+        currentTeam = nw.AssignedTeam;
+
+        Debug.Log($"My assigned team is { nw. AssignedTeam}");
+
+        if (localGame && currentTeam == 0)
+        {
+            Server.Instance.Broadcast(new NetStartGame());
+        }
+    }
+
+    private void OnStartGameClient(NetMessage msg)
+    {
+        // We just need to change the camera
+        GameUI.Instance.ChangeCamera((currentTeam == 0) ? cameraAngle.whiteTeam : cameraAngle.blackTeam);
+    }
+
+    // Set Local Game
+    private void OnSetLocalGame(bool v)
+    {
+        localGame = v;
+    }
+    #endregion
 }
