@@ -521,7 +521,7 @@ MonoBehaviour:
   dragOffset: 1.275
   victoryScreen: {fileID: 538857303}
   rematchIndicator: {fileID: 981214403}
-  rematchButton: {fileID: 0}
+  rematchButton: {fileID: 1632038997}
   prefabs:
   - {fileID: 9204601144244254648, guid: d117163a0169d644193a182a0d2485c2, type: 3}
   - {fileID: 7573951893837031146, guid: 2fe38e48996e63f4fb31dc3d7d21e556, type: 3}
