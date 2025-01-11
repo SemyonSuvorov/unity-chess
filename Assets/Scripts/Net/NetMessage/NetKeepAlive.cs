@@ -4,32 +4,21 @@ using UnityEngine;
 
 public class NetKeepAlive : NetMessage
 {
-    public NetKeepAlive() //sending message
-    {
-        Code = OpCode.KEEP_ALIVE;
-    }
+    private string payload;
 
-    public NetKeepAlive(DataStreamReader reader) //receiving message
+    public NetKeepAlive(string data)
     {
-        Code = OpCode.KEEP_ALIVE;
-        Deserialize(reader);
+        payload = data;
     }
+    public override string Serialize() => payload;
 
-    public override void Serialize(ref DataStreamWriter writer)
+    public override void ReceivedOnServer()
     {
-        writer.WriteByte((byte)Code);
-    }
-    public override void Deserialize(DataStreamReader reader)
-    {
-        
+        Debug.Log("KeepAlive received on server: " + payload);
     }
 
     public override void ReceivedOnClient()
     {
-        NetUtility.C_KEEP_ALIVE?.Invoke(this);
-    }
-    public override void ReceivedOnServer(NetworkConnection cnn)
-    {
-        NetUtility.S_KEEP_ALIVE?.Invoke(this, cnn);
+        Debug.Log("KeepAlive received on client: " + payload);
     }
 }

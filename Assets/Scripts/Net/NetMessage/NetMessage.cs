@@ -1,24 +1,6 @@
-using Unity.Collections;
-using Unity.Networking.Transport;
-
-public class NetMessage
+public abstract class NetMessage
 {
-    public OpCode Code {get; set;}
-
-    public virtual void Serialize(ref DataStreamWriter writer)
-    {
-        writer.WriteByte((byte)Code);
-    }
-    public virtual void Deserialize(DataStreamReader reader)
-    {
-
-    }
-    public virtual void ReceivedOnClient()
-    {
-
-    }
-    public virtual void ReceivedOnServer(NetworkConnection cnn)
-    {
-
-    }
+    public abstract string Serialize();
+    public abstract void ReceivedOnServer();
+    public abstract void ReceivedOnClient();
 }

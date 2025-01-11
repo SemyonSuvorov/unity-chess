@@ -4,47 +4,48 @@ using UnityEngine;
 
 public class NetMakeMove : NetMessage
 {
-    public int originalX;
-    public int originalY;
-    public int destinationX;
-    public int destinationY;
-    public int teamId;
+    public int OriginalX { get; set; }
+    public int OriginalY { get; set; }
+    public int DestinationX { get; set; }
+    public int DestinationY { get; set; }
+    public int TeamId { get; set; }
 
-    public NetMakeMove() //sending message
+    public NetMakeMove()
     {
-        Code = OpCode.MAKE_MOVE;
+        
     }
+    public NetMakeMove(string data)
+    {
+        var parts = data.Split(',');
+        if (parts.Length == 5 &&
+            int.TryParse(parts[0], out int originalX) &&
+            int.TryParse(parts[1], out int originalY) &&
+            int.TryParse(parts[2], out int destinationX) &&
+            int.TryParse(parts[3], out int destinationY) &&
+            int.TryParse(parts[4], out int teamId))
+        {
+            OriginalX = originalX;
+            OriginalY = originalY;
+            DestinationX = destinationX;
+            DestinationY = destinationY;
+            TeamId = teamId;
+        }
+        else
+        {
+            Debug.LogError("Failed to parse NetMakeMove from data: " + data);
+        }
+    }
+     public override string Serialize() => $"{OriginalX},{OriginalY},{DestinationX},{DestinationY},{TeamId}";
 
-    public NetMakeMove(DataStreamReader reader) //receiving message
+    public override void ReceivedOnServer()
     {
-        Code = OpCode.MAKE_MOVE;
-        Deserialize(reader);
-    }
-
-    public override void Serialize(ref DataStreamWriter writer)
-    {
-        writer.WriteByte((byte)Code);
-        writer.WriteInt(originalX);
-        writer.WriteInt(originalY);
-        writer.WriteInt(destinationX);
-        writer.WriteInt(destinationY);
-        writer.WriteInt(teamId);
-    }
-    public override void Deserialize(DataStreamReader reader)
-    {
-        originalX = reader.ReadInt();
-        originalY = reader.ReadInt();
-        destinationX = reader.ReadInt();
-        destinationY = reader.ReadInt();
-        teamId = reader.ReadInt();
+        Debug.Log($"MakeMove received on server: ({OriginalX}, {OriginalY}) -> ({DestinationX}, {DestinationY}), TeamId={TeamId}");
+        NetUtility.S_MAKE_MOVE?.Invoke(this);
     }
 
     public override void ReceivedOnClient()
     {
+        Debug.Log($"MakeMove received on client: ({OriginalX}, {OriginalY}) -> ({DestinationX}, {DestinationY}), TeamId={TeamId}");
         NetUtility.C_MAKE_MOVE?.Invoke(this);
-    }
-    public override void ReceivedOnServer(NetworkConnection cnn)
-    {
-        NetUtility.S_MAKE_MOVE?.Invoke(this, cnn);
     }
 }

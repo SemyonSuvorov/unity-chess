@@ -124,12 +124,12 @@ public class Chessboard : MonoBehaviour
 
                 //Net implementation
                 NetMakeMove mm = new NetMakeMove();
-                mm.originalX = previousPosition.x;
-                mm.originalY = previousPosition.y;
-                mm.destinationX = hitPosition.x;
-                mm.destinationY = hitPosition.y;
-                mm.teamId = currentTeam;
-                Client.Instance.SendToServer(mm);
+                mm.OriginalX = previousPosition.x;
+                mm.OriginalY = previousPosition.y;
+                mm.DestinationX = hitPosition.x;
+                mm.DestinationY = hitPosition.y;
+                mm.TeamId = currentTeam;
+                Client.Instance.SendToServer($"MAKE_MOVE {mm.Serialize()}");
             }
             else
             {
@@ -319,21 +319,21 @@ public class Chessboard : MonoBehaviour
         if(localGame)
         {
         NetRematch wrm = new NetRematch();
-        wrm.teamId = 0;
-        wrm.wantRematch = 1;
-        Client.Instance.SendToServer(wrm);
+        wrm.TeamId = 0;
+        wrm.WantRematch = 1;
+        Client.Instance.SendToServer($"REMATCH {wrm.Serialize()}");
 
         NetRematch brm = new NetRematch();
-        brm.teamId = 1;
-        brm.wantRematch = 1;
-        Client.Instance.SendToServer(brm);
+        brm.TeamId = 1;
+        brm.WantRematch = 1;
+        Client.Instance.SendToServer($"REMATCH {brm.Serialize()}");
         }
         else
         {
         NetRematch rm = new NetRematch();
-        rm.teamId = currentTeam;
-        rm.wantRematch = 1;
-        Client.Instance.SendToServer(rm);
+        rm.TeamId = currentTeam;
+        rm.WantRematch = 1;
+        Client.Instance.SendToServer($"REMATCH {rm.Serialize()}");
         }
     }
     public void GameReset()
@@ -384,9 +384,9 @@ public class Chessboard : MonoBehaviour
     public void OnMenuButton()
     {
         NetRematch rm = new NetRematch();
-        rm.teamId = currentTeam;
-        rm.wantRematch = 0;
-        Client.Instance.SendToServer(rm);
+        rm.TeamId = currentTeam;
+        rm.WantRematch = 0;
+        Client.Instance.SendToServer($"REMATCH {rm.Serialize()}");
 
         GameReset();
         GameUI.Instance.OnLeaveFromMenu();
@@ -888,145 +888,131 @@ private int GetPieceValue(ChessPieceType type)
         Server.Instance.Shutdown();
     }
 
-    #region 
-    private void RegisterEvents()
+#region Events
+private void RegisterEvents()
+{
+    NetUtility.S_WELCOME += OnWelcomeServer;
+    NetUtility.S_MAKE_MOVE += OnMakeMoveServer;
+    NetUtility.S_REMATCH += OnRematchServer;
+
+    NetUtility.C_WELCOME += OnWelcomeClient;
+    NetUtility.C_START_GAME += OnStartGameClient;
+    NetUtility.C_MAKE_MOVE += OnMakeMoveClient;
+    NetUtility.C_REMATCH += OnRematchClient;
+
+    GameUI.Instance.SETLocalGame += OnSetLocalGame;
+}
+
+private void UnregisterEvents()
+{
+    NetUtility.S_WELCOME -= OnWelcomeServer;
+    NetUtility.S_MAKE_MOVE -= OnMakeMoveServer;
+    NetUtility.S_REMATCH -= OnRematchServer;
+
+    NetUtility.C_WELCOME -= OnWelcomeClient;
+    NetUtility.C_START_GAME -= OnStartGameClient;
+    NetUtility.C_MAKE_MOVE -= OnMakeMoveClient;
+    NetUtility.C_REMATCH -= OnRematchClient;
+
+    GameUI.Instance.SETLocalGame -= OnSetLocalGame;
+}
+
+// Server
+private void OnMakeMoveServer(NetMessage msg)
+{
+    NetMakeMove mm = msg as NetMakeMove;
+    if (mm == null) return;
+
+    // Validation logic can go here
+
+    // Broadcast to all clients
+    Server.Instance.Broadcast($"MAKE_MOVE {mm.Serialize()}");
+}
+
+private void OnWelcomeServer(NetMessage msg)
+{
+    NetWelcome nw = msg as NetWelcome;
+    if (nw == null) return;
+
+    // Assign a team
+    nw.AssignedTeam = ++playerCount;
+
+    // Send back to client
+    Server.Instance.SendToClient($"WELCOME {nw.Serialize()}");
+
+    // Start game if full
+    if (playerCount == 1)
     {
-        NetUtility.S_WELCOME += OnWelcomeServer;
-        NetUtility.S_MAKE_MOVE += OnMakeMoveServer;
-        NetUtility.S_REMATCH += OnRematchServer;
-
-        NetUtility.C_WELCOME += OnWelcomeClient;
-        NetUtility.C_START_GAME += OnStartGameClient;
-        NetUtility.C_MAKE_MOVE += OnMakeMoveClient;
-        NetUtility.C_REMATCH += OnRematchClient;
-
-        GameUI.Instance.SETLocalGame += OnSetLocalGame;
+        Server.Instance.Broadcast(new NetStartGame("START_GAME").Serialize());
     }
+}
 
-    private void UnregisterEvents()
+private void OnRematchServer(NetMessage msg)
+{
+    Server.Instance.Broadcast(msg.Serialize());
+}
+
+// Client
+private void OnWelcomeClient(NetMessage msg)
+{
+    NetWelcome nw = msg as NetWelcome;
+    if (nw == null) return;
+
+    currentTeam = nw.AssignedTeam;
+    Debug.Log($"Assigned team: {nw.AssignedTeam}");
+
+    if (localGame && currentTeam == 0)
     {
-        NetUtility.S_WELCOME -= OnWelcomeServer;
-        NetUtility.S_MAKE_MOVE -= OnMakeMoveServer;
-        NetUtility.S_REMATCH -= OnRematchServer;
-
-        NetUtility.C_WELCOME -= OnWelcomeClient;
-        NetUtility.C_START_GAME -= OnStartGameClient;
-        NetUtility.C_MAKE_MOVE -= OnMakeMoveClient;
-        NetUtility.C_REMATCH -= OnRematchClient;
-
-        GameUI.Instance.SETLocalGame -= OnSetLocalGame;
+        Server.Instance.Broadcast(new NetStartGame("START_GAME").Serialize());
     }
+}
 
-    // Server
-    private void OnMakeMoveServer(NetMessage msg, NetworkConnection cnn)
+private void OnStartGameClient(NetMessage msg)
+{
+    GameUI.Instance.ChangeCamera(currentTeam == 0 ? cameraAngle.whiteTeam : cameraAngle.blackTeam);
+}
+
+private void OnMakeMoveClient(NetMessage msg)
+{
+    NetMakeMove mm = msg as NetMakeMove;
+    if (mm == null) return;
+
+    Debug.Log($"MakeMove: Team={mm.TeamId}, From=({mm.OriginalX}, {mm.OriginalY}), To=({mm.DestinationX}, {mm.DestinationY})");
+
+    if (mm.TeamId != currentTeam)
     {
-        NetMakeMove mm = msg as NetMakeMove;
-
-        //Could do some validation
-        //--
-
-        // Receive, and just broadcast it back
-        Server.Instance.Broadcast(mm);
+        // Perform move logic here
+        ChessPiece target = chessPieces[mm.OriginalX, mm.OriginalY];
+        availableMoves = target.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
+        specialMove = target.GetSpecialMoves(ref chessPieces, ref moveList, ref availableMoves);
+        MoveTo(mm.OriginalX, mm.OriginalY, mm.DestinationX, mm.DestinationY);
     }
+}
 
-    private void OnWelcomeServer(NetMessage msg, NetworkConnection cnn)
+private void OnRematchClient(NetMessage msg)
+{
+    NetRematch rm = msg as NetRematch;
+    if (rm == null) return;
+
+    playerRematch[rm.TeamId] = rm.WantRematch == 1;
+    Debug.Log($"Rematch update for Team {rm.TeamId}: {rm.WantRematch}");
+
+    if (playerRematch[0] && playerRematch[1])
     {
-        // Client has connected, assigned team and return the message back 
-        NetWelcome nw = msg as NetWelcome;
-
-        //Assign a team
-        nw.AssignedTeam = ++playerCount;
-
-        // Return back to the client
-        Server.Instance.SendToClient(cnn, nw);
-
-        // if full, start the game
-        if(playerCount == 1)
-        {
-            Server.Instance.Broadcast(new NetStartGame());
-        }   
+        GameReset();
     }
-
-    private void OnRematchServer(NetMessage msg, NetworkConnection cnn)
+    else if (!playerRematch[0] || !playerRematch[1])
     {
-        Server.Instance.Broadcast(msg);
+        rematchButton.interactable = true;
     }
+}
 
-    // Client
-    private void OnWelcomeClient(NetMessage msg)
-    {
-        // Receive the connection message
-        NetWelcome nw = msg as NetWelcome;
+private void OnSetLocalGame(bool isLocal)
+{
+    playerCount = -1;
+    currentTeam = -1;
+    localGame = isLocal;
+}
 
-        //Assign the team
-        currentTeam = nw.AssignedTeam;
-
-        Debug.Log($"My assigned team is { nw. AssignedTeam}");
-
-        if (localGame && currentTeam == 0)
-        {
-            Server.Instance.Broadcast(new NetStartGame());
-        }
-    }
-
-    private void OnStartGameClient(NetMessage msg)
-    {
-        // We just need to change the camera
-        GameUI.Instance.ChangeCamera((currentTeam == 0) ? cameraAngle.whiteTeam : cameraAngle.blackTeam);
-    }
-
-    private void OnMakeMoveClient(NetMessage msg)
-    {
-        NetMakeMove mm = msg as NetMakeMove;
-
-        Debug.Log($"MM : {mm.teamId} : {mm.originalX} {mm.destinationY} -> {mm.destinationX} {mm.destinationY}");
-
-        if (mm.teamId != currentTeam)
-        {
-            ChessPiece target = chessPieces[mm.originalX, mm.originalY];
-
-            availableMoves = target.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
-            specialMove = target.GetSpecialMoves(ref chessPieces, ref moveList, ref availableMoves);
-
-            MoveTo(mm.originalX, mm.originalY, mm.destinationX, mm.destinationY);
-        }
-    }
-    private void OnRematchClient(NetMessage msg)
-    {
-        //Receive the con msg
-        NetRematch rm = msg as NetRematch;
-
-        //Set bool for rematch
-        playerRematch[rm.teamId] = rm.wantRematch == 1;
-        
-        //Activate the piece of UI
-        if(rm.teamId!=currentTeam)
-        {
-            rematchIndicator.transform.GetChild((rm.wantRematch == 1) ? 0 : 1).gameObject.SetActive(true);
-            if(rm.wantRematch != 1)
-            {
-                rematchButton.interactable = false;
-            }
-        }
-        //If both wants to rematch
-        if (playerRematch[0] && playerRematch[1])
-            {
-            GameReset();
-            return;                
-            }
-        else if (playerRematch[0] == false || playerRematch[1] == false)
-            {
-            rematchButton.interactable = true;  
-            }
-    }
-
-    // Set Local Game
-    private void OnSetLocalGame(bool v)
-    {
-        playerCount = -1;
-        currentTeam = -1;
-
-        localGame = v;
-    }
-    #endregion
+#endregion
 }

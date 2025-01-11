@@ -4,30 +4,23 @@ using UnityEngine;
 
 public class NetStartGame : NetMessage
 {
-   public NetStartGame()
-   {
-        Code = OpCode.START_GAME;
-   }
-   public NetStartGame(DataStreamReader reader)
-   {
-        Code = OpCode.START_GAME;
-        Deserialize(reader);
-   } 
+    private string payload;
 
-    public override void Serialize(ref DataStreamWriter writer)
+    public NetStartGame(string data)
     {
-        writer.WriteByte((byte)Code);
+        payload = data;
     }
-    public override void Deserialize(DataStreamReader reader)
-    {
+    public override string Serialize() => payload;
 
+    public override void ReceivedOnServer()
+    {
+        Debug.Log("StartGame received on server: " + payload);
+        NetUtility.S_START_GAME?.Invoke(this);
     }
+
     public override void ReceivedOnClient()
     {
+        Debug.Log("StartGame received on client: " + payload);
         NetUtility.C_START_GAME?.Invoke(this);
-    }
-    public override void ReceivedOnServer(NetworkConnection cnn)
-    {
-        NetUtility.S_START_GAME?.Invoke(this, cnn);
     }
 }

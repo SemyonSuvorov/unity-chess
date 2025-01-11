@@ -4,38 +4,39 @@ using UnityEngine;
 
 public class NetRematch : NetMessage
 {
-    public int teamId;
-    public byte wantRematch;
-
-    public NetRematch() //sending message
+    public int TeamId { get; set; }
+    public byte WantRematch { get; set; }
+    public NetRematch()
     {
-        Code = OpCode.REMATCH;
+        
     }
 
-    public NetRematch(DataStreamReader reader) //receiving message
+    public NetRematch(string data)
     {
-        Code = OpCode.REMATCH;
-        Deserialize(reader);
+        var parts = data.Split(',');
+        if (parts.Length == 2 &&
+            int.TryParse(parts[0], out int teamId) &&
+            byte.TryParse(parts[1], out byte wantRematch))
+        {
+            TeamId = teamId;
+            WantRematch = wantRematch;
+        }
+        else
+        {
+            Debug.LogError("Failed to parse NetRematch from data: " + data);
+        }
     }
+    public override string Serialize() => $"{TeamId},{WantRematch}";
 
-    public override void Serialize(ref DataStreamWriter writer)
+    public override void ReceivedOnServer()
     {
-        writer.WriteByte((byte)Code);
-        writer.WriteInt(teamId);
-        writer.WriteByte(wantRematch);
-    }
-    public override void Deserialize(DataStreamReader reader)
-    {
-        teamId = reader.ReadInt();
-        wantRematch = reader.ReadByte();
+        Debug.Log($"Rematch received on server: TeamId={TeamId}, WantRematch={WantRematch}");
+        NetUtility.S_REMATCH?.Invoke(this);
     }
 
     public override void ReceivedOnClient()
     {
+        Debug.Log($"Rematch received on client: TeamId={TeamId}, WantRematch={WantRematch}");
         NetUtility.C_REMATCH?.Invoke(this);
-    }
-    public override void ReceivedOnServer(NetworkConnection cnn)
-    {
-        NetUtility.S_REMATCH?.Invoke(this, cnn);
     }
 }

@@ -1,147 +1,98 @@
 using System;
-using Unity.Collections;
-using Unity.Networking.Transport;
-using Unity.VisualScripting;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using UnityEngine;
 
 public class Server : MonoBehaviour
 {
-    //TODO: need to make better singleton
-    public static Server Instance {set; get;}
+    public static Server Instance { get; private set; }
 
-    private void Awake() 
-    {
-        Instance = this;
-    }
-    //
-    public NetworkDriver driver;
-    private NativeList<NetworkConnection> connections;
-
+    private UdpClient udpServer;
+    private IPEndPoint clientEndPoint;
     private bool isActive = false;
 
     private const float keepAliveTickRate = 20.0f;
     private float lastKeepAlive;
 
     public Action connectionDropped;
-    //methods
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     public void Init(ushort port)
     {
-        driver = NetworkDriver.Create();
-        NetworkEndpoint endpoint  = NetworkEndpoint.AnyIpv4;
-        endpoint.Port = port;
-
-        if(driver.Bind(endpoint) != 0)
-        {
-            Debug.Log("Unable to bind on port " + endpoint.Port);
-            return;
-        }
-        else
-        {
-            driver.Listen();
-            Debug.Log("Listening on port " + endpoint.Port);
-        }
-
-        connections = new NativeList<NetworkConnection>(2, Allocator.Persistent);
+        udpServer = new UdpClient(port);
+        Debug.Log("Server started on port " + port);
         isActive = true;
     }
 
     public void Shutdown()
     {
-        if(isActive)
+        if (isActive)
         {
-            driver.Dispose();
-            connections.Dispose();
-            isActive=false;
+            udpServer.Close();
+            isActive = false;
         }
     }
 
-    public void OnDestroy()
+    private void OnDestroy()
     {
         Shutdown();
     }
 
-    public void Update()
+    private void Update()
     {
-        if(!isActive) return;
+        if (!isActive) return;
 
-        KeepAlive();
+        try
+        {
+            while (udpServer.Available > 0)
+            {
+                var receivedData = udpServer.Receive(ref clientEndPoint);
+                HandleMessage(Encoding.UTF8.GetString(receivedData));
+            }
 
-        driver.ScheduleUpdate().Complete();
-        CleanupConnections();
-        AcceptNewConnections();
-        UpdateMessagePump();
+            KeepAlive();
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Error in receiving data: " + e.Message);
+        }
     }
 
     private void KeepAlive()
     {
-        if(Time.time - lastKeepAlive > keepAliveTickRate)
+        if (Time.time - lastKeepAlive > keepAliveTickRate)
         {
             lastKeepAlive = Time.time;
-            Broadcast(new NetKeepAlive());
+            Broadcast("KEEP_ALIVE");
         }
     }
 
-    private void CleanupConnections()
+    private void HandleMessage(string message)
     {
-        for(int i = 0; i < connections.Length; i++)
-        {
-            if(!connections[i].IsCreated)
-            {
-                connections.RemoveAtSwapBack(i);
-                --i;
-            }
-        }
+        Debug.Log("Message from client: " + message);
     }
 
-    private void AcceptNewConnections()
+    public void Broadcast(string message)
     {
-        NetworkConnection c;
-        while((c=driver.Accept()) != default(NetworkConnection))
+        if (!isActive || clientEndPoint == null) return;
+
+        try
         {
-            connections.Add(c);
+            var data = Encoding.UTF8.GetBytes(message);
+            udpServer.Send(data, data.Length, clientEndPoint);
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Error broadcasting data: " + e.Message);
         }
     }
-    private void UpdateMessagePump()
+    public void SendToClient(string message)
     {
-        DataStreamReader stream;
-        for(int i = 0; i < connections.Length; i++)
-        {
-            NetworkEvent.Type cmd;
-            while((cmd=driver.PopEventForConnection(connections[i], out stream)) != NetworkEvent.Type.Empty)
-            {
-                if (cmd == NetworkEvent.Type.Data)
-                {
-                    NetUtility.OnData(stream, connections[i], this);
-                }
-                else if (cmd == NetworkEvent.Type.Disconnect)
-                {
-                    Debug.Log("Client disconnected");
-                    connections[i] = default(NetworkConnection);
-                    connectionDropped?.Invoke();
-                    Shutdown(); //because 2 player game
-                }
-            }
-        }
-    }
-
-    //server specific
-    public void SendToClient(NetworkConnection connection, NetMessage msg)
-    {
-        DataStreamWriter writer;
-        driver.BeginSend(connection, out writer);
-        msg.Serialize(ref writer);
-        driver.EndSend(writer);
-    } 
-
-    public void Broadcast(NetMessage msg)
-    {
-        for(int i = 0; i < connections.Length; i++)
-        {
-            if(connections[i].IsCreated)
-            {
-                //Debug.Log($"Sending {msg.Code} to : {connections[i].InternalId}");
-                SendToClient(connections[i], msg);
-            }
-        }
+        Broadcast(message);
     }
 }

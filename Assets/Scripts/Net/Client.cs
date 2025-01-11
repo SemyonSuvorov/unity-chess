@@ -1,37 +1,30 @@
 using System;
-using Unity.Collections;
-using Unity.Networking.Transport;
-using Unity.VisualScripting;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using UnityEngine;
 
 public class Client : MonoBehaviour
 {
-    //TODO: need to make better singleton
-    public static Client Instance {set; get;}
+    public static Client Instance { get; private set; }
 
-    private void Awake() 
-    {
-        Instance = this;
-    }
-    //
-
-    public NetworkDriver driver;
-    private NetworkConnection connection;
-
+    private UdpClient udpClient;
+    private IPEndPoint serverEndPoint;
     private bool isActive = false;
 
     public Action connectionDropped;
 
-    //methods
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     public void Init(string ip, ushort port)
     {
-        driver = NetworkDriver.Create();
-        NetworkEndpoint endpoint = NetworkEndpoint.Parse(ip, port);
+        udpClient = new UdpClient();
+        serverEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
 
-        connection = driver.Connect(endpoint);
-
-        Debug.Log("Attempting to connect to server on " + endpoint.Address);
-
+        Debug.Log("Attempting to connect to server at " + ip + ":" + port);
         isActive = true;
 
         RegisterToEvent();
@@ -39,85 +32,66 @@ public class Client : MonoBehaviour
 
     public void Shutdown()
     {
-        if(isActive)
+        if (isActive)
         {
             UnergisterToEvent();
-            driver.Dispose();
-            isActive=false;
-            connection = default(NetworkConnection);
+            udpClient.Close();
+            isActive = false;
         }
     }
 
-    public void OnDestroy()
+    private void OnDestroy()
     {
         Shutdown();
     }
 
-    public void Update()
+    private void Update()
     {
-        if(!isActive) return;
+        if (!isActive) return;
 
-        driver.ScheduleUpdate().Complete();
-        CheckAlive();
-
-        UpdateMessagePump();
-    }
-
-    private void CheckAlive()
-    {
-        if(!connection.IsCreated && isActive)
+        try
         {
-            Debug.Log("Something went wrong, lost connection to the server");
+            if (udpClient.Available > 0)
+            {
+                var receivedData = udpClient.Receive(ref serverEndPoint);
+                HandleMessage(Encoding.UTF8.GetString(receivedData));
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Error in receiving data: " + e.Message);
             connectionDropped?.Invoke();
             Shutdown();
         }
     }
 
-    private void UpdateMessagePump()
+    private void HandleMessage(string message)
     {
-        DataStreamReader stream;
-        NetworkEvent.Type cmd;
-        while((cmd = connection.PopEvent(driver, out stream)) != NetworkEvent.Type.Empty)
+        Debug.Log("Message from server: " + message);
+    }
+
+    public void SendToServer(string message)
+    {
+        if (!isActive) return;
+
+        try
         {
-            if (cmd == NetworkEvent.Type.Data)
-            {
-                NetUtility.OnData(stream, default(NetworkConnection));
-            }
-            else if (cmd == NetworkEvent.Type.Connect)
-            {
-               SendToServer(new NetWelcome());
-               Debug.Log("Connected!");
-            }
-            else if (cmd == NetworkEvent.Type.Disconnect)
-            {
-                Debug.Log("Client disconnected");
-                connection = default(NetworkConnection);
-                connectionDropped?.Invoke();
-                Shutdown();
-            }
+            var data = Encoding.UTF8.GetBytes(message);
+            udpClient.Send(data, data.Length, serverEndPoint);
         }
-        
+        catch (Exception e)
+        {
+            Debug.Log("Error sending data: " + e.Message);
+        }
     }
 
-    public void SendToServer(NetMessage msg)
-    {
-        DataStreamWriter writer;
-        driver.BeginSend(connection, out writer);
-        msg.Serialize(ref writer);
-        driver.EndSend(writer);
-    }
-
-    //Event parsing
     private void RegisterToEvent()
     {
-        NetUtility.C_KEEP_ALIVE += OnKeepAlive;
+        // В будущем переделаем с использованием более высокого уровня
     }
+
     private void UnergisterToEvent()
     {
-        NetUtility.C_KEEP_ALIVE -= OnKeepAlive;
-    }
-    private void OnKeepAlive(NetMessage nm)
-    {
-        SendToServer(nm);
+        // В будущем переделаем с использованием более высокого уровня
     }
 }
