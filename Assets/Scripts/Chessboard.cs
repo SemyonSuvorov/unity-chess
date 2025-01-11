@@ -377,6 +377,8 @@ public class Chessboard : MonoBehaviour
         SpawnAllPieces();
         PositionAllPieces();
         isWhiteTurn = true;
+        if(localGame)
+            currentTeam = 0;
     }
     public void OnMenuButton()
     {
@@ -392,6 +394,7 @@ public class Chessboard : MonoBehaviour
         //Reset values
         playerCount = -1;
         currentTeam = -1;
+
     }
 
     //Special moves
@@ -870,7 +873,14 @@ public class Chessboard : MonoBehaviour
         }
         //If both wants to rematch
         if (playerRematch[0] && playerRematch[1])
+            {
             GameReset();
+            return;                
+            }
+        else if (playerRematch[0] == false || playerRematch[1] == false)
+            {
+            rematchButton.interactable = true;  
+            }
     }
 
     // Set Local Game
