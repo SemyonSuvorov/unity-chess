@@ -3,7 +3,6 @@ using Unity.Networking.Transport;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using  System.Collections;
 
 public enum SpecialMove 
 {
@@ -684,203 +683,67 @@ public class Chessboard : MonoBehaviour
 
     
     private void MoveTo(int originalX, int originalY, int x, int y)
-{
-    ChessPiece cp = chessPieces[originalX, originalY]; 
-    Vector2Int previousPosition = new Vector2Int(originalX, originalY);
-
-    if (chessPieces[x, y] != null)
     {
-        ChessPiece ocp = chessPieces[x, y];
-        if (cp.team == ocp.team)
+
+       ChessPiece cp = chessPieces[originalX, originalY]; 
+       Vector2Int previousPosition = new Vector2Int(originalX, originalY);
+
+        if(chessPieces[x, y] != null)
         {
-            return;
-        }
-
-        if (ocp.team == 0)
-        {
-            if (ocp.type == ChessPieceType.King)
-                return; // Нельзя захватить короля
-
-            deadWhites.Add(ocp);
-            ocp.SetScale(Vector3.one * deathSize);
-            ocp.SetPosition(new Vector3(8 * tileSize, yOffset, -1 * tileSize)
-                - bounds
-                + new Vector3(tileSize / 2, 0, tileSize / 2)
-                + (Vector3.forward * deathSpacing) * deadWhites.Count);
-        }
-        else
-        {
-            if (ocp.type == ChessPieceType.King)
-                return; // Нельзя захватить короля
-
-            deadBlacks.Add(ocp);
-            ocp.SetScale(Vector3.one * deathSize);
-            ocp.SetPosition(new Vector3(-1 * tileSize, yOffset, 8 * tileSize)
-                - bounds
-                + new Vector3(tileSize / 2, 0, tileSize / 2)
-                + (Vector3.back * deathSpacing) * deadBlacks.Count);
-        }
-    }
-
-    chessPieces[x, y] = cp;
-    chessPieces[previousPosition.x, previousPosition.y] = null;
-
-    PositionSinglePiece(x, y);
-
-    isWhiteTurn = !isWhiteTurn;
-    if (localGame)
-        currentTeam = (currentTeam == 0) ? 1 : 0;
-
-    moveList.Add(new Vector2Int[] { previousPosition, new Vector2Int(x, y) });
-
-    ProcessSpecialMove();
-
-    if (currentlyDragging)
-        currentlyDragging = null;
-    RemoveHighlightTiles();
-
-    if (CheckForCheckmate())
-    {
-        CheckMate(cp.team);
-        return; // Игра завершена, блокируем дальнейшие ходы
-    }
-
-    // Если это локальная игра и ход теперь за компьютером
-    if (localGame && currentTeam == 1) // Предполагаем, что 1 - команда компьютера
-    {
-        StartCoroutine(PerformComputerMoveWithDelay());
-    }
-
-    return;
-}
-
-private IEnumerator PerformComputerMoveWithDelay()
-{
-    yield return new WaitForSeconds(1f); // Задержка перед ходом компьютера
-    PerformComputerMove();
-}
-
-private void PerformComputerMove()
-{
-    // Список всех доступных ходов для команды компьютера
-    List<Vector2Int[]> availableMoves = GetAllAvailableMoves(currentTeam);
-
-    if (availableMoves.Count > 0)
-    {
-        Vector2Int[] bestMove = GetBestMove(availableMoves);
-        Vector2Int from = bestMove[0];
-        Vector2Int to = bestMove[1];
-
-        // Выполняем ход
-        MoveTo(from.x, from.y, to.x, to.y);
-
-        // Обработка специальных ходов для компьютера
-        ProcessSpecialMove();
-    }
-}
-
-private List<Vector2Int[]> GetAllAvailableMoves(int team)
-{
-    List<Vector2Int[]> moves = new List<Vector2Int[]>();
-
-    for (int x = 0; x < 8; x++)
-    {
-        for (int y = 0; y < 8; y++)
-        {
-            ChessPiece cp = chessPieces[x, y];
-            if (cp != null && cp.team == team)
+            ChessPiece ocp = chessPieces[x,y];
+            if (cp.team == ocp.team)
             {
-                List<Vector2Int> pieceMoves = cp.GetAvailableMoves(ref chessPieces, 8, 8);
-                SimulateMoveForSinglePiece(cp, ref pieceMoves, FindKing(team)); // Проверка на шах
-                foreach (var move in pieceMoves)
-                {
-                    moves.Add(new Vector2Int[] { new Vector2Int(x, y), move });
-                }
+                return;
+            }
+
+            if(ocp.team == 0)
+            {
+                if(ocp.type == ChessPieceType.King)
+                    CheckMate(1);
+
+                deadWhites.Add(ocp);
+                ocp.SetScale(Vector3.one * deathSize);
+                ocp.SetPosition(new Vector3(8*tileSize, yOffset, -1 * tileSize)
+                - bounds 
+                + new Vector3(tileSize / 2, 0, tileSize / 2) 
+                + (Vector3.forward * deathSpacing) * deadWhites.Count);
+            }
+            else
+            {
+                if(ocp.type == ChessPieceType.King)
+                    CheckMate(0);
+
+                deadBlacks.Add(ocp);
+                ocp.SetScale(Vector3.one * deathSize);
+                ocp.SetPosition(new Vector3(-1*tileSize, yOffset, 8 * tileSize)
+                - bounds 
+                + new Vector3(tileSize / 2, 0, tileSize / 2) 
+                + (Vector3.back * deathSpacing) * deadBlacks.Count);
+
             }
         }
+
+       chessPieces[x, y] = cp;
+       chessPieces[previousPosition.x, previousPosition.y] = null;
+
+       PositionSinglePiece(x, y);
+
+       isWhiteTurn = !isWhiteTurn;
+       if(localGame)
+        currentTeam = (currentTeam == 0) ? 1 : 0;
+       moveList.Add(new Vector2Int[] {previousPosition, new Vector2Int(x,y)});
+
+       ProcessSpecialMove();
+
+       if (currentlyDragging) 
+            currentlyDragging = null;
+       RemoveHighlightTiles();
+
+       if(CheckForCheckmate())
+        CheckMate(cp.team);
+
+       return;
     }
-
-    return moves;
-}
-
-private Vector2Int[] GetBestMove(List<Vector2Int[]> availableMoves)
-{
-    // Определяем вероятность выбора случайного хода
-    float randomMoveChance = 0.3f; // 30% шанс на случайный ход
-
-    if (UnityEngine.Random.value < randomMoveChance)
-    {
-        // Возвращаем случайный ход
-        return availableMoves[UnityEngine.Random.Range(0, availableMoves.Count)];
-    }
-
-    // Логика для выбора лучшего хода
-    List<Vector2Int[]> bestMoves = new List<Vector2Int[]>();
-    int maxScore = int.MinValue;
-
-    foreach (var move in availableMoves)
-    {
-        Vector2Int from = move[0];
-        Vector2Int to = move[1];
-        ChessPiece target = chessPieces[to.x, to.y];
-
-        int moveScore = 0;
-
-        // Если ход захватывает фигуру, оцениваем его выше
-        if (target != null)
-        {
-            moveScore += GetPieceValue(target.type);
-        }
-
-        if (moveScore > maxScore)
-        {
-            maxScore = moveScore;
-            bestMoves.Clear();
-            bestMoves.Add(move);
-        }
-        else if (moveScore == maxScore)
-        {
-            bestMoves.Add(move);
-        }
-    }
-
-    // Выбираем случайный ход из лучших
-    return bestMoves[UnityEngine.Random.Range(0, bestMoves.Count)];
-}
-
-private ChessPiece FindKing(int team)
-{
-    for (int x = 0; x < TILE_COUNT_X; x++)
-    {
-        for (int y = 0; y < TILE_COUNT_Y; y++)
-        {
-            if (chessPieces[x, y] != null && chessPieces[x, y].team == team && chessPieces[x, y].type == ChessPieceType.King)
-                return chessPieces[x, y];
-        }
-    }
-    return null;
-}
-
-private int GetPieceValue(ChessPieceType type)
-{
-    switch (type)
-    {
-        case ChessPieceType.Pawn:
-            return 10;
-        case ChessPieceType.Knight:
-        case ChessPieceType.Bishop:
-            return 30;
-        case ChessPieceType.Rook:
-            return 50;
-        case ChessPieceType.Queen:
-            return 90;
-        case ChessPieceType.King:
-            return 900;
-        default:
-            return 0;
-    }
-}
-
 
     private void ShutdownRelay()
     {
